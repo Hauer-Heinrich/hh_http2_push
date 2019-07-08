@@ -1,0 +1,25 @@
+{
+    "name": "hauerheinrich/hh-http2-push",
+    "description": "HTTP/2 Push for TYPO3. Be sure to include extension after scriptmerger if installed. It should be the 'ast hook'. Uses Cookies!",
+    "type": "typo3-cms-extension",
+    "license": "GPL-3.0-or-later",
+    "require": {
+        "typo3/cms-core": "^9.5",
+        "typo3/cms-extbase": "^9.5",
+        "typo3/cms-frontend": "^9.5"
+    },
+    "replace": {
+        "hh_http2_push": "self.version",
+        "typo3-ter/hh-gmap-simplest": "self.version"
+    },
+    "autoload": {
+        "psr-4": {
+            "HauerHeinrich\\HhHttp2Push\\": "Classes/"
+        }
+    },
+    "extra": {
+        "typo3/cms": {
+            "extension-key": "hh_http2_push"
+        }
+    }
+}
