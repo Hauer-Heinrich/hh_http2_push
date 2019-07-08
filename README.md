@@ -18,14 +18,18 @@ page {
 ```
 
 ### Features
-- works for compressed files
-- works for concatenate files
+- works for compressed files (extension configuration)
+- works for concatenate files (extension configuration)
 - works for "normal" files
 
 ### Todos
 - optimize code
 
 ### Deprecated
+
+### NOTICE
+In most cases it is not good to push all files. So try different versions - single files - concatenate and not concatenate and so on.
+That's an idiotic thing. In many cases, it is enough to "just" push the css.
 
 ### IMPORTENT NOTICE
 
