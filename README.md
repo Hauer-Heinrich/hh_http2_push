@@ -8,12 +8,14 @@ Needs a boolean cookie - if cookie=true sets the additional link (push) response
 
 ### To use it
 Add to your TypoScript for example this:
+```
 page {
     includeCSS {
         file10 = yourPath.css
         file10.preloadPush = 1
     }
 }
+```
 
 ### Features
 - works for compressed files
