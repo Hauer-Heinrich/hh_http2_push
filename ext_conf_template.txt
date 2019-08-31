@@ -4,11 +4,23 @@ webserverHeaderLengthLimit = 8190
 # cat=basic/enable; type=string; label= Cookie live time in ms (default: 432000 = 5 days / 86400 = 1 day)
 cookieLifeTime = 432000
 
-# cat=basic/enable; type=boolean; label= HeaderLink for compressed files
-compressFiles = 0
+# cat=basic/enable; type=boolean; label= HeaderLink for all compressed css files
+compressCssFiles = 0
 
-# cat=basic/enable; type=boolean; label= HeaderLink for concatenated files
-concatenateFiles = 0
+# cat=basic/enable; type=boolean; label= HeaderLink for all compressed js files
+compressJsFiles = 0
+
+# cat=basic/enable; type=boolean; label= HeaderLink for all concatenated css files
+concatenateCssFiles = 0
+
+# cat=basic/enable; type=boolean; label= HeaderLink for all concatenated js files
+concatenateJsFiles = 0
+
+# cat=basic/enable; type=boolean; label= HeaderLink for all js files
+cssFiles = 0
+
+# cat=basic/enable; type=boolean; label= HeaderLink for all js files
+jsFiles = 0
 
 # cat=basic/enable; type=string; label= Cookie live time in ms (default: 432000 = 5 days / 86400 = 1 day)
 cookieLifeTime = 432000
