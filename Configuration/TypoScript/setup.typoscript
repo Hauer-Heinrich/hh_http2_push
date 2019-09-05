@@ -1,0 +1,12 @@
+plugin.tx_hhhttp2push {
+    settings {
+        compressCssFiles = 0
+        compressJsFiles = 0
+        concatenateCssFiles = 0
+        concatenateJsFiles = 0
+
+        ### Overrides the above ones
+        cssFiles = 0
+        jsFiles = 0
+    }
+}

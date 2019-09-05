@@ -1,45 +1,26 @@
 <?php
+declare(strict_types=1);
 
-namespace HauerHeinrich\HhHttp2Push\Hooks;
+namespace HauerHeinrich\HhHttp2Push\Middleware;
 
-/***************************************************************
- *  Copyright notice
+/**
+ * This file is part of the "hh_http2_push" Extension for TYPO3 CMS.
  *
- *  (c) 2019 Christian Hackl <web@hauer-heinrich.de>, www.hauer-heinrich.de
- *
- *  All rights reserved
- *
- *  This script is part of the TYPO3 project. The TYPO3 project is
- *  free software; you can redistribute it and/or modify
- *  it under the terms of the GNU General Public License as published by
- *  the Free Software Foundation; either version 3 of the License, or
- *  (at your option) any later version.
- *
- *  The GNU General Public License can be found at
- *  http://www.gnu.org/copyleft/gpl.html.
- *
- *  This script is distributed in the hope that it will be useful,
- *  but WITHOUT ANY WARRANTY; without even the implied warranty of
- *  MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the
- *  GNU General Public License for more details.
- *
- *  This copyright notice MUST APPEAR in all copies of the script!
- ***************************************************************/
+ * For the full copyright and license information, please read the
+ * LICENSE.txt file that was distributed with this source code.
+ */
 
+use Psr\Http\Message\ResponseInterface;
+use Psr\Http\Message\ServerRequestInterface;
+use Psr\Http\Server\MiddlewareInterface;
+use Psr\Http\Server\RequestHandlerInterface;
 use DOMDocument;
 use DOMXPath;
 use \TYPO3\CMS\Extbase\Utility\DebuggerUtility;
 use \TYPO3\CMS\Core\Utility\GeneralUtility;
 use \TYPO3\CMS\Core\TypoScript\TemplateService;
 
-/**
- * HTTP/2 Push
- *
- * @author Christian Hackl <web@hauer-heinrich.de>
- * @package TYPO3
- * @subpackage hh_http2_push
- */
-class ContentPostProcessor {
+class Http2PushMiddleware implements MiddlewareInterface {
     /**
      * extensionKey
      *
@@ -138,8 +119,18 @@ class ContentPostProcessor {
      */
     protected $concatenateJsFiles = false;
 
-    public function __construct() {
+    public function initialize() {
         $this->extensionKey = 'hh_http2_push';
+
+        $version9 = \TYPO3\CMS\Core\Utility\VersionNumberUtility::convertVersionNumberToInteger(TYPO3_branch) >= \TYPO3\CMS\Core\Utility\VersionNumberUtility::convertVersionNumberToInteger('9.3');
+        if($version9) {
+            // TYPO3 9:
+            $this->extensionConfiguration = $GLOBALS['TYPO3_CONF_VARS']['EXTENSIONS'][$this->extensionKey];
+        } else {
+            // TYPO3 =< 8
+            // Typo3 extension manager gearwheel icon (ext_conf_template.txt)
+            $this->extensionConfiguration = unserialize($GLOBALS['TYPO3_CONF_VARS']['EXT']['extConf'][$this->extensionKey]);
+        }
 
         $objectManager = GeneralUtility::makeInstance('TYPO3\\CMS\\Extbase\\Object\\ObjectManager');
         $configurationManager = $objectManager->get('TYPO3\\CMS\\Extbase\\Configuration\\ConfigurationManager');
@@ -162,50 +153,55 @@ class ContentPostProcessor {
         $this->cssJs = $this->extensionConfiguration['cssJs'] || $this->pluginSettings['cssJs'] ? true : false;
 
         $this->versionNumberInFilename = $GLOBALS['TYPO3_CONF_VARS']['FE']['versionNumberInFilename'];
-
-        $version9 = \TYPO3\CMS\Core\Utility\VersionNumberUtility::convertVersionNumberToInteger(TYPO3_branch) >= \TYPO3\CMS\Core\Utility\VersionNumberUtility::convertVersionNumberToInteger('9.3');
-        if($version9) {
-            // TYPO3 9:
-            $this->extensionConfiguration = $GLOBALS['TYPO3_CONF_VARS']['EXTENSIONS'][$this->extensionKey];
-        } else {
-            // TYPO3 =< 8
-            // Typo3 extension manager gearwheel icon (ext_conf_template.txt)
-            $this->extensionConfiguration = unserialize($GLOBALS['TYPO3_CONF_VARS']['EXT']['extConf'][$this->extensionKey]);
-        }
     }
 
-    public function addPushHeader(&$params) {
-        DebuggerUtility::var_dump($params, "OLD");
+    public function process(ServerRequestInterface $request, RequestHandlerInterface $handler): ResponseInterface {
         $cookie_name = "preload_push";
         $cookie_value = "true";
 
-        $cookieLifeTime = $this->extensionConfiguration['cookieLifeTime'];
-        $concatenateFiles = $this->extensionConfiguration['concatenateFiles'];
-        $debug = $this->extensionConfiguration['debug'];
+        $response = $handler->handle($request);
+        $contents = $response->getBody()->getContents();
+        $mainController = GeneralUtility::makeInstance(\TYPO3\CMS\Adminpanel\Controller\MainController::class);
 
-        // Set cookie and add ResposeHeader Link
-        if(!isset($_COOKIE[$cookie_name]) && $GLOBALS['TYPO3_CONF_VARS']['FE']['debug'] != true || $debug == true) {
-            setcookie($cookie_name, $cookie_value, time() + $cookieLifeTime, "/"); // 86400 = 1 day
+        DebuggerUtility::var_dump($request->getParsedBody());
+        DebuggerUtility::var_dump($response);
+        // DebuggerUtility::var_dump($GLOBALS['TSFE']);
+        DebuggerUtility::var_dump($contents);
 
-            // Multi method call cause of file keys for example: cssFiles.file10 and cssLibs.file10 / duplicate key
-            // CSS
-            $this->setCssHeaderLink($params['cssLibs']);
-            $this->setCssHeaderLink($params['cssFiles']);
-            // JavaScript
-            $this->setJsHeaderLink($params['jsLibs']);
-            $this->setJsHeaderLink($params['jsFiles']);
-            $this->setJsHeaderLink($params['jsFooterFiles']);
-            $this->setJsHeaderLink($params['jsFooterLibs']);
+        // DebuggerUtility::var_dump($response);
 
-            // delete last ','
-            $index = count( $this->preloadLinks ) - 1;
-            $value = $this->preloadLinks[$index];
-            $this->preloadLinks[$index] = substr_replace($this->preloadLinks[$index], "", -1);
+        // if(!isset($_COOKIE[$cookie_name])) {
+        //     $this->initialize();
+        //     $cookieLifeTime = $this->extensionConfiguration['cookieLifeTime'];
+        //     $concatenateFiles = $this->extensionConfiguration['concatenateFiles'];
+        //     $debug = $this->extensionConfiguration['debug'];
+        // }
 
-            header('Link: '.$this->checkHeaderLengthAndReturnImplodedArray($this->preloadLinks));
-        } else {
-            // echo ("cookie ist bereits gesetzt, keine Link Ausgabe");
-        }
+        // // Set cookie and add ResposeHeader Link
+        // if(!isset($_COOKIE[$cookie_name]) && $GLOBALS['TYPO3_CONF_VARS']['FE']['debug'] != true || $debug == true) {
+        //     setcookie($cookie_name, $cookie_value, time() + $cookieLifeTime, "/"); // 86400 = 1 day
+
+        //     // Multi method call cause of file keys for example: cssFiles.file10 and cssLibs.file10 / duplicate key
+        //     // CSS
+        //     $this->setCssHeaderLink($params['cssLibs']);
+        //     $this->setCssHeaderLink($params['cssFiles']);
+        //     // JavaScript
+        //     $this->setJsHeaderLink($params['jsLibs']);
+        //     $this->setJsHeaderLink($params['jsFiles']);
+        //     $this->setJsHeaderLink($params['jsFooterFiles']);
+        //     $this->setJsHeaderLink($params['jsFooterLibs']);
+
+        //     // delete last ','
+        //     $index = count( $this->preloadLinks ) - 1;
+        //     $value = $this->preloadLinks[$index];
+        //     $this->preloadLinks[$index] = substr_replace($this->preloadLinks[$index], "", -1);
+
+        //     header('Link: '.$this->checkHeaderLengthAndReturnImplodedArray($this->preloadLinks));
+        // } else {
+        //     // echo ("cookie ist bereits gesetzt, keine Link Ausgabe");
+        // }
+
+        return $response;
     }
 
     /**
